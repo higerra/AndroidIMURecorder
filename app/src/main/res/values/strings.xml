@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">TangoIMURecorder</string>
+    <string name="alert_title">Alert</string>
+</resources>
