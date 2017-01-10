@@ -6,7 +6,7 @@ import android.content.Context;
 
 import org.rajawali3d.math.Quaternion;
 import org.rajawali3d.math.vector.Vector3;
-import org.rajawali3d.renderer.Renderer;
+import org.rajawali3d.renderer.RajawaliRenderer;
 
 import com.example.yanhang.tangoimurecorder.rajawali.FrustumAxes;
 import com.example.yanhang.tangoimurecorder.rajawali.Grid;
@@ -16,7 +16,7 @@ import com.google.atap.tangoservice.TangoPoseData;
  * Created by yanhang on 1/9/17.
  */
 
-public class MotionRajawaliRenderer extends Renderer {
+public class MotionRajawaliRenderer extends RajawaliRenderer {
 
     private static final float CAMERA_NEAR = 0.01f;
     private static final float CAMERA_FAR = 200f;

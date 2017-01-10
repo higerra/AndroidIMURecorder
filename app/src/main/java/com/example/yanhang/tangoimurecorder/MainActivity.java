@@ -2,7 +2,11 @@ package com.example.yanhang.tangoimurecorder;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.hardware.Camera;
+
+import android.hardware.display.DisplayManager;
 import android.os.Environment;
+import android.support.v4.hardware.display.DisplayManagerCompat;
 import android.support.v4.widget.EdgeEffectCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -11,6 +15,9 @@ import android.util.StringBuilderPrinter;
 import android.hardware.SensorEvent;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
+import android.view.Display;
+import android.view.MotionEvent;
+import android.view.Surface;
 
 import com.google.atap.tango.ux.TangoUxLayout;
 import com.google.atap.tango.ux.UxExceptionEvent;
@@ -21,15 +28,15 @@ import com.google.atap.tangoservice.TangoConfig;
 import com.google.atap.tangoservice.TangoCoordinateFramePair;
 import com.google.atap.tangoservice.TangoErrorException;
 import com.google.atap.tangoservice.TangoEvent;
-import com.google.atap.tangoservice.TangoInvalidException;
-import com.google.atap.tangoservice.TangoOutOfDateException;
-import com.google.atap.tangoservice.TangoPointCloudData;
 import com.google.atap.tangoservice.TangoPoseData;
+import com.google.atap.tangoservice.TangoPointCloudData;
 import com.google.atap.tangoservice.TangoXyzIjData;
 
 import com.google.atap.tango.ux.TangoUx;
 import com.google.atap.tango.ux.TangoUxLayout;
 import com.google.atap.tango.ux.TangoUx.StartParams;
+
+import com.projecttango.tangosupport.TangoSupport;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -38,7 +45,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 
-import org.rajawali3d.view.SurfaceView;
+import org.rajawali3d.surface.RajawaliSurfaceView;
 import org.rajawali3d.scene.ASceneFrameCallback;
 
 
@@ -84,19 +91,42 @@ public class MainActivity extends AppCompatActivity {
 
     private PoseIMURecorder mRecorder;
     private MotionRajawaliRenderer mRenderer;
-    private SurfaceView mSurfaceView;
+    private org.rajawali3d.surface.RajawaliSurfaceView mSurfaceView;
+
+    private int mCameraToDisplayRotation = 0;
 
     private boolean mIsConnected = false;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         mTangoUx = setupTangoUx();
-        mSurfaceView = (SurfaceView) findViewById(R.id.gl_surface_view);
+        mSurfaceView = (RajawaliSurfaceView) findViewById(R.id.gl_surface_view);
         mRenderer = new MotionRajawaliRenderer(this);
         setupRenderer();
+
+        DisplayManager displayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
+        if(displayManager != null){
+            displayManager.registerDisplayListener(new DisplayManager.DisplayListener() {
+                @Override
+                public void onDisplayAdded(int displayId) {
+
+                }
+
+                @Override
+                public void onDisplayRemoved(int displayId) {
+                    synchronized (this){
+                        setAndroidOrientation();
+                    }
+                }
+
+                @Override
+                public void onDisplayChanged(int displayId) {
+
+                }
+            }, null);
+        }
     }
 
     @Override
@@ -124,9 +154,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 synchronized (MainActivity.this){
+                    TangoSupport.initialize();
                     mTangoConfig = setupTangoConfig(mTango);
                     mTango.connect(mTangoConfig);
                     startupTango();
+                    mIsConnected = true;
                 }
             }
         });
@@ -195,15 +227,20 @@ public class MainActivity extends AppCompatActivity {
 
                     // Update current camera pose
                     try{
-                        TangoPoseData lastFramePose = mTango.getPoseAtTime(0,
+                        TangoPoseData lastFramePose = TangoSupport.getPoseAtTime(0,
                                 TangoPoseData.COORDINATE_FRAME_START_OF_SERVICE,
-                                TangoPoseData.COORDINATE_FRAME_DEVICE,)
+                                TangoPoseData.COORDINATE_FRAME_DEVICE,
+                                TangoSupport.TANGO_SUPPORT_ENGINE_OPENGL, mCameraToDisplayRotation);
+                        mRenderer.updateCameraPose(lastFramePose);
                     }catch (TangoErrorException e){
                         Log.e(LOG_TAG, "Could not get valid transform");
                     }
-
-
                 }
+            }
+
+            @Override
+            public boolean callPreFrame(){
+                return true;
             }
 
             @Override
@@ -216,8 +253,39 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+
+        mSurfaceView.setSurfaceRenderer(mRenderer);
     }
 
+    @Override
+    public boolean onTouchEvent(MotionEvent motionEvent){
+        mRenderer.onTouchEvent(motionEvent);
+        return true;
+    }
+
+    private void setAndroidOrientation(){
+        Display display = getWindowManager().getDefaultDisplay();
+        Camera.CameraInfo depthCameraInfo = new Camera.CameraInfo();
+        Camera.getCameraInfo(1, depthCameraInfo);
+
+        int depthCameraRotation = Surface.ROTATION_0;
+        switch(depthCameraInfo.orientation){
+            case 90:
+                depthCameraRotation = Surface.ROTATION_90;
+                break;
+            case 180:
+                depthCameraRotation = Surface.ROTATION_180;
+                break;
+            case 270:
+                depthCameraRotation = Surface.ROTATION_270;
+                break;
+        }
+
+        mCameraToDisplayRotation = display.getRotation() - depthCameraRotation;
+        if(mCameraToDisplayRotation < 0){
+            mCameraToDisplayRotation += 4;
+        }
+    }
 
     private void startupTango(){
         final ArrayList<TangoCoordinateFramePair> framePairs = new ArrayList<>();
