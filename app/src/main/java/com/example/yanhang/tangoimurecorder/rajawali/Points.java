@@ -63,7 +63,7 @@ public class Points extends Object3D {
      * Update the geometry of the points based on the provided points float buffer.
      */
     public void updatePoints(int pointCount, FloatBuffer pointCloudBuffer) {
-        mGeometry.setNumIndices(pointCount);
+        //mGeometry.setNumIndices(pointCount);
         mGeometry.setVertices(pointCloudBuffer);
         mGeometry.changeBufferData(mGeometry.getVertexBufferInfo(), mGeometry.getVertices(), 0,
                 pointCount * mFloatsPerPoint);
@@ -79,7 +79,7 @@ public class Points extends Object3D {
                     String.format("pointClount = %d exceeds maximum number of points = %d",
                             pointCount, mMaxNumberOfVertices));
         }
-        mGeometry.setNumIndices(pointCount);
+        //mGeometry.setNumIndices(pointCount);
         mGeometry.setVertices(points);
         mGeometry.changeBufferData(mGeometry.getVertexBufferInfo(), mGeometry.getVertices(), 0,
                 pointCount * mFloatsPerPoint);

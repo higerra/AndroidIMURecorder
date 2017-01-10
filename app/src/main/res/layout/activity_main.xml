@@ -10,6 +10,11 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.example.yanhang.tangoimurecorder.MainActivity">
 
+    <org.rajawali3d.view.SurfaceView
+        android:id="@+id/gl_surface_view"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent" />
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
