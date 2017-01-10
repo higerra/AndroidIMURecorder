@@ -4,10 +4,12 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.hardware.Camera;
 
+import android.hardware.SensorEventListener;
 import android.hardware.display.DisplayManager;
 import android.os.Environment;
 import android.support.v4.hardware.display.DisplayManagerCompat;
 import android.support.v4.widget.EdgeEffectCompat;
+import android.support.v4.widget.TextViewCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -18,6 +20,9 @@ import android.hardware.SensorManager;
 import android.view.Display;
 import android.view.MotionEvent;
 import android.view.Surface;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 
 import com.google.atap.tango.ux.TangoUxLayout;
 import com.google.atap.tango.ux.UxExceptionEvent;
@@ -44,12 +49,14 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.rajawali3d.surface.RajawaliSurfaceView;
 import org.rajawali3d.scene.ASceneFrameCallback;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SensorEventListener{
 
     private static final String LOG_TAG = MainActivity.class.getName();
     private Tango mTango;
@@ -93,9 +100,24 @@ public class MainActivity extends AppCompatActivity {
     private MotionRajawaliRenderer mRenderer;
     private org.rajawali3d.surface.RajawaliSurfaceView mSurfaceView;
 
+    private SensorManager mSensorManager;
+    private Sensor mAccelerometer;
+    private Sensor mGyroscope;
+
+    private TextView mLabelRx;
+    private TextView mLabelRy;
+    private TextView mLabelRz;
+    private TextView mLabelAx;
+    private TextView mLabelAy;
+    private TextView mLabelAz;
+    private Button mStartStopButton;
+
+
     private int mCameraToDisplayRotation = 0;
 
-    private boolean mIsConnected = false;
+    private AtomicBoolean mIsConnected = new AtomicBoolean(false);
+    private AtomicBoolean mIsRecording = new AtomicBoolean(false);
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -127,28 +149,39 @@ public class MainActivity extends AppCompatActivity {
                 }
             }, null);
         }
+
+        // initialize IMU sensor
+        mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+        mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        //mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED);
+
+        mLabelRx = (TextView)findViewById(R.id.label_rx);
+        mLabelRy = (TextView)findViewById(R.id.label_ry);
+        mLabelRz = (TextView)findViewById(R.id.label_rz);
+        mLabelAx = (TextView)findViewById(R.id.label_ax);
+        mLabelAy = (TextView)findViewById(R.id.label_ay);
+        mLabelAz = (TextView)findViewById(R.id.label_az);
+        mStartStopButton = (Button)findViewById(R.id.button_start_stop);
     }
 
     @Override
     protected void onPause(){
         super.onPause();
-
-        synchronized (this){
-            try{
-                mTangoUx.stop();
-                mTango.disconnect();
-            }catch(Exception e){
-                e.printStackTrace();
-            }
-        }
+        stopRecording();
+        mSensorManager.unregisterListener(this, mAccelerometer);
+        mSensorManager.unregisterListener(this, mGyroscope);
     }
 
     @Override
     protected void onResume(){
         super.onResume();
+        mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_FASTEST);
+        mSensorManager.registerListener(this, mGyroscope, SensorManager.SENSOR_DELAY_FASTEST);
+    }
 
+    private void startNewRecording(){
         mTangoUx.start(new StartParams());
-
         // initialize tango service
         mTango = new Tango(MainActivity.this, new Runnable() {
             @Override
@@ -158,7 +191,7 @@ public class MainActivity extends AppCompatActivity {
                     mTangoConfig = setupTangoConfig(mTango);
                     mTango.connect(mTangoConfig);
                     startupTango();
-                    mIsConnected = true;
+                    mIsConnected.set(true);
                 }
             }
         });
@@ -174,18 +207,47 @@ public class MainActivity extends AppCompatActivity {
                     .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
-
+                            stopRecording();
                         }
                     }).show();
             e.printStackTrace();
+        }
+        mIsRecording.set(true);
+    }
+
+    private void stopRecording(){
+        mIsRecording.set(false);
+        if(mRecorder != null) {
+            mRecorder.endFiles();
+        }
+        synchronized (this){
+            try{
+                mTangoUx.stop();
+                mTango.disconnect();
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+        }
+        mIsConnected.set(false);
+    }
+
+    public void startStopRecording(View view){
+        if(!mIsRecording.get()){
+            startNewRecording();
+            mStartStopButton.setText(R.string.stop_title);
+        }else{
+            stopRecording();
+            mStartStopButton.setText(R.string.start_title);
         }
     }
 
     private TangoConfig setupTangoConfig(Tango tango){
         TangoConfig config = tango.getConfig(TangoConfig.CONFIG_TYPE_DEFAULT);
         config.putBoolean(TangoConfig.KEY_BOOLEAN_MOTIONTRACKING, true);
-        config.putBoolean(TangoConfig.KEY_BOOLEAN_COLORCAMERA, true);
-        config.putBoolean(TangoConfig.KEY_BOOLEAN_AUTORECOVERY, true);
+        config.putBoolean(TangoConfig.KEY_BOOLEAN_HIGH_RATE_POSE, true);
+        //config.putBoolean(TangoConfig.KEY_BOOLEAN_LOWLATENCYIMUINTEGRATION, true);
+        //config.putBoolean(TangoConfig.KEY_BOOLEAN_COLORCAMERA, true);
+        //config.putBoolean(TangoConfig.KEY_BOOLEAN_AUTORECOVERY, true);
 
         return config;
     }
@@ -195,7 +257,6 @@ public class MainActivity extends AppCompatActivity {
         tangoUx.setUxExceptionEventListener(mUxExceptionEventListener);
         TangoUxLayout uxLayout = (TangoUxLayout) findViewById(R.id.layout_tango);
         tangoUx.setLayout(uxLayout);
-
         return tangoUx;
     }
 
@@ -221,7 +282,7 @@ public class MainActivity extends AppCompatActivity {
             public void onPreFrame(long sceneTime, double deltaTime) {
                 synchronized (MainActivity.this){
                     // Don't execute any tango API actions if we're not connected to the service
-                    if (!mIsConnected){
+                    if (!mIsConnected.get()){
                         return;
                     }
 
@@ -300,7 +361,9 @@ public class MainActivity extends AppCompatActivity {
                 if(mTangoUx != null){
                     mTangoUx.updatePoseStatus(tangoPoseData.statusCode);
                 }
-                mRecorder.addPoseRecord(tangoPoseData);
+                if(mIsRecording.get()) {
+                    mRecorder.addPoseRecord(tangoPoseData);
+                }
             }
 
             @Override
@@ -327,4 +390,28 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    // receive IMU data
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy){
+
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event){
+        if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER){
+            mLabelAx.setText(String.format(Locale.US, "%.6f", event.values[0]));
+            mLabelAy.setText(String.format(Locale.US, "%.6f", event.values[1]));
+            mLabelAz.setText(String.format(Locale.US, "%.6f", event.values[2]));
+            if(mIsRecording.get()){
+                mRecorder.addAcclerometerRecord(event);
+            }
+        }else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE){
+            mLabelRx.setText(String.format(Locale.US, "%.6f", event.values[0]));
+            mLabelRy.setText(String.format(Locale.US, "%.6f", event.values[1]));
+            mLabelRz.setText(String.format(Locale.US, "%.6f", event.values[2]));
+            if(mIsRecording.get()){
+                mRecorder.addGyroscopeRecord(event);
+            }
+        }
+    }
 }

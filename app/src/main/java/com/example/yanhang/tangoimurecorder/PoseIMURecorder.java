@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
 import static android.content.ContentValues.TAG;
@@ -23,6 +24,8 @@ public class PoseIMURecorder {
     private FileWriter pose_writer_;
     private FileWriter gyro_writer_;
     private FileWriter acce_writer_;
+
+    private static final float mulNanoToSec = 1000000000;
 
     private final static String LOG_TAG = PoseIMURecorder.class.getName();
 
@@ -83,10 +86,11 @@ public class PoseIMURecorder {
         StringBuilder builder = new StringBuilder();
         float[] translation = new_pose.getTranslationAsFloats();
         float[] rotation = new_pose.getRotationAsFloats();
-        builder.append(new_pose.timestamp + " " + rotation[0] + " " + rotation[1] + " " + rotation[2] + " ");
-        builder.append(translation[0] + " " + translation[1] + " " + translation[2] + "\n");
         try {
-            pose_writer_.write(builder.toString());
+            pose_writer_.write(String.format(Locale.US,
+                    "%d %.6f %.6f %.6f %.6f %.6f %.6f\n", (long)(new_pose.timestamp * mulNanoToSec),
+                    translation[0], translation[1], translation[2],
+                    rotation[0], rotation[1], rotation[2]));
             pose_writer_.flush();
         }catch (IOException e){
             e.printStackTrace();
@@ -94,7 +98,28 @@ public class PoseIMURecorder {
         return true;
     }
 
-    public Boolean addIMURecord(SensorEvent event){
+    public Boolean addAcclerometerRecord(SensorEvent event){
+        float[] values = event.values;
+        long timestamp = event.timestamp;
+        try {
+            acce_writer_.write(String.format(Locale.US,"%d %.6f %.6f %.6f\n", timestamp, values[0], values[1], values[2]));
+            acce_writer_.flush();
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+        return true;
+    }
+
+    public Boolean addGyroscopeRecord(SensorEvent event){
+        float[] values = event.values;
+        long timestamp = event.timestamp;
+
+        try {
+            gyro_writer_.write(String.format(Locale.US,"%d %.6f %.6f %.6f\n", timestamp, values[0], values[1], values[2]));
+            gyro_writer_.flush();
+        }catch (IOException e){
+            e.printStackTrace();
+        }
         return true;
     }
 
