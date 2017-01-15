@@ -15,7 +15,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_alignParentTop="true"
+        android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
         android:columnCount="4"
         android:rowCount="4">
@@ -121,6 +121,13 @@
             android:text="0.000000"/>
 
     </GridLayout>
+
+    <!--<android.opengl.GLSurfaceView-->
+        <!--android:id="@+id/video_surface_view"-->
+        <!--android:layout_width="@dimen/video_width"-->
+        <!--android:layout_height="@dimen/video_height"-->
+        <!--android:layout_alignParentStart="true"-->
+        <!--android:layout_alignParentTop="true"/>-->
 
     <Button
         android:layout_width="wrap_content"

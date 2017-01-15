@@ -6,6 +6,7 @@ import android.hardware.Camera;
 
 import android.hardware.SensorEventListener;
 import android.hardware.display.DisplayManager;
+import android.opengl.GLSurfaceView;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -26,6 +27,7 @@ import com.google.atap.tango.ux.UxExceptionEvent;
 import com.google.atap.tango.ux.UxExceptionEventListener;
 import com.google.atap.tangoservice.Tango;
 import com.google.atap.tangoservice.Tango.OnTangoUpdateListener;
+import com.google.atap.tangoservice.TangoCameraIntrinsics;
 import com.google.atap.tangoservice.TangoConfig;
 import com.google.atap.tangoservice.TangoCoordinateFramePair;
 import com.google.atap.tangoservice.TangoErrorException;
@@ -54,6 +56,10 @@ import org.rajawali3d.scene.ASceneFrameCallback;
 public class MainActivity extends AppCompatActivity implements SensorEventListener{
 
     private static final String LOG_TAG = MainActivity.class.getName();
+//    private static final int INVALID_TEXTURE_ID = 0;
+//    private static final int COLOR_CAMERA_ID = 0;
+//    private static final int FISHEYE_CAMERA_ID = 2;
+
     private Tango mTango;
     private TangoConfig mTangoConfig;
     private TangoUx mTangoUx;
@@ -91,7 +97,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     };
 
-    private TangoPoseData mDeviceToIMU;
     private PoseIMURecorder mRecorder;
     private MotionRajawaliRenderer mRenderer;
     private org.rajawali3d.surface.RajawaliSurfaceView mSurfaceView;
@@ -118,12 +123,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private Button mStartStopButton;
     private ToggleButton mTogglePoseButton;
+//    private GLSurfaceView mVideoSurfaceView;
+//    private HelloVideoRenderer mVideoRenderer;
 
     private int mCameraToDisplayRotation = 0;
 
     private Boolean mIsRecordingPose = true;
     private AtomicBoolean mIsConnected = new AtomicBoolean(false);
     private AtomicBoolean mIsRecording = new AtomicBoolean(false);
+//    private AtomicBoolean mIsFrameAvailableTangoThread = new AtomicBoolean(false);
+//    private int mConnectedTextureIdGlThread = INVALID_TEXTURE_ID;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,6 +142,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mTangoUx = setupTangoUx();
         mSurfaceView = (RajawaliSurfaceView) findViewById(R.id.gl_surface_view);
         mRenderer = new MotionRajawaliRenderer(this);
+
+        //mVideoSurfaceView = (GLSurfaceView) findViewById(R.id.video_surface_view);
+
         setupRenderer();
 
         DisplayManager displayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
@@ -272,6 +284,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         TangoConfig config = tango.getConfig(TangoConfig.CONFIG_TYPE_DEFAULT);
         config.putBoolean(TangoConfig.KEY_BOOLEAN_MOTIONTRACKING, true);
         config.putBoolean(TangoConfig.KEY_BOOLEAN_HIGH_RATE_POSE, true);
+        //config.putBoolean(TangoConfig.KEY_BOOLEAN_COLORCAMERA, true);
         //config.putBoolean(TangoConfig.KEY_BOOLEAN_LOWLATENCYIMUINTEGRATION, true);
         //config.putBoolean(TangoConfig.KEY_BOOLEAN_COLORCAMERA, true);
         //config.putBoolean(TangoConfig.KEY_BOOLEAN_AUTORECOVERY, true);
@@ -303,6 +316,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void setupRenderer(){
+        // motion renderer
         mSurfaceView.setEGLContextClientVersion(2);
         mRenderer.getCurrentScene().registerFrameCallback(new ASceneFrameCallback() {
             @Override
@@ -343,6 +357,34 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         });
 
         mSurfaceView.setSurfaceRenderer(mRenderer);
+
+//        // camera renderer
+//        mVideoSurfaceView.setEGLContextClientVersion(2);
+//        mVideoRenderer = new HelloVideoRenderer(new HelloVideoRenderer.RenderCallback() {
+//            @Override
+//            public void preRender() {
+//                if(!mIsConnected.get()){
+//                    return;
+//                }
+//
+//                try{
+//                    synchronized (MainActivity.this) {
+//                        if (mConnectedTextureIdGlThread == INVALID_TEXTURE_ID) {
+//                            mConnectedTextureIdGlThread = mVideoRenderer.getTextureId();
+//                            mTango.connectTextureId(TangoCameraIntrinsics.TANGO_CAMERA_COLOR, mVideoRenderer.getTextureId());
+//                        }
+//
+//                        if (mIsFrameAvailableTangoThread.compareAndSet(true, false)) {
+//                            mTango.updateTexture(TangoCameraIntrinsics.TANGO_CAMERA_COLOR);
+//                        }
+//                    }
+//                }catch (Exception e){
+//                    e.printStackTrace();
+//                }
+//            }
+//        });
+//        mVideoSurfaceView.setRenderer(mVideoRenderer);
+
     }
 
     @Override
@@ -398,7 +440,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
 
             @Override
-            public void onFrameAvailable(int i) {
+            public void onFrameAvailable(int cameraId) {
+//                if(cameraId == TangoCameraIntrinsics.TANGO_CAMERA_COLOR){
+//                    if(mVideoSurfaceView.getRenderMode() != GLSurfaceView.RENDERMODE_WHEN_DIRTY){
+//                        mVideoSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+//                    }
+//
+//                    mIsFrameAvailableTangoThread.set(true);
+//                    mVideoSurfaceView.requestRender();
+//                }
             }
 
             @Override
