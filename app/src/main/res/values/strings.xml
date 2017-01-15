@@ -3,4 +3,5 @@
     <string name="alert_title">Alert</string>
     <string name="start_title">Start</string>
     <string name="stop_title">Stop</string>
+    <string name="record_pose">Pose</string>
 </resources>
