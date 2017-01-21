@@ -7,7 +7,10 @@ import android.hardware.Camera;
 import android.hardware.SensorEventListener;
 import android.hardware.display.DisplayManager;
 import android.opengl.GLSurfaceView;
+import android.os.AsyncTask;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -18,6 +21,7 @@ import android.view.Display;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.ToggleButton;
@@ -59,6 +63,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 //    private static final int INVALID_TEXTURE_ID = 0;
 //    private static final int COLOR_CAMERA_ID = 0;
 //    private static final int FISHEYE_CAMERA_ID = 2;
+
+    private final Handler mUIHandler = new Handler(Looper.getMainLooper());
 
     private Tango mTango;
     private TangoConfig mTangoConfig;
@@ -123,14 +129,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private Button mStartStopButton;
     private ToggleButton mTogglePoseButton;
+    private ToggleButton mToggleFileButton;
 //    private GLSurfaceView mVideoSurfaceView;
 //    private HelloVideoRenderer mVideoRenderer;
 
     private int mCameraToDisplayRotation = 0;
 
     private Boolean mIsRecordingPose = true;
+    private Boolean mIsWriteFile = true;
     private AtomicBoolean mIsConnected = new AtomicBoolean(false);
     private AtomicBoolean mIsRecording = new AtomicBoolean(false);
+
+
 //    private AtomicBoolean mIsFrameAvailableTangoThread = new AtomicBoolean(false);
 //    private int mConnectedTextureIdGlThread = INVALID_TEXTURE_ID;
 
@@ -190,19 +200,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mLabelGz = (TextView)findViewById(R.id.label_gz);
         mStartStopButton = (Button)findViewById(R.id.button_start_stop);
         mTogglePoseButton = (ToggleButton)findViewById(R.id.toggle_pose);
-
+        mToggleFileButton = (ToggleButton)findViewById(R.id.toggle_file);
     }
 
     @Override
     protected void onPause(){
         super.onPause();
         stopRecording();
-        mSensorManager.unregisterListener(this);
+        mSensorManager.unregisterListener(this, mAccelerometer);
+        mSensorManager.unregisterListener(this, mGyroscope);
+        mSensorManager.unregisterListener(this, mGravity);
+        mSensorManager.unregisterListener(this, mLinearAcce);
     }
 
     @Override
     protected void onResume(){
         super.onResume();
+        mStartStopButton.setText(R.string.start_title);
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_FASTEST);
         mSensorManager.registerListener(this, mGyroscope, SensorManager.SENSOR_DELAY_FASTEST);
         mSensorManager.registerListener(this, mGravity, SensorManager.SENSOR_DELAY_FASTEST);
@@ -211,6 +225,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private void startNewRecording(){
         mTogglePoseButton.setEnabled(false);
+        mToggleFileButton.setEnabled(false);
         if(mIsRecordingPose) {
             mTangoUx.start(new StartParams());
             // initialize tango service
@@ -229,22 +244,26 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
 
         //initialize recorder
-        try{
-            String output_dir = setupOutputFolder();
-            mRecorder = new PoseIMURecorder(output_dir, this);
-        }catch (FileNotFoundException e){
-            new AlertDialog.Builder(MainActivity.this)
-                    .setTitle(R.string.alert_title)
-                    .setCancelable(false)
-                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            stopRecording();
-                        }
-                    }).show();
-            e.printStackTrace();
+        if(mIsWriteFile) {
+            try {
+                String output_dir = setupOutputFolder();
+                mRecorder = new PoseIMURecorder(output_dir, this);
+            } catch (FileNotFoundException e) {
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle(R.string.alert_title)
+                        .setCancelable(false)
+                        .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                stopRecording();
+                            }
+                        }).show();
+                e.printStackTrace();
+            }
         }
         mIsRecording.set(true);
+        // prevent screen lock
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
     private void stopRecording(){
@@ -264,6 +283,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             mIsConnected.set(false);
         }
         mTogglePoseButton.setEnabled(true);
+        mToggleFileButton.setEnabled(true);
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
     public void startStopRecording(View view){
@@ -278,6 +299,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     public void tooglePoseRecording(View view){
         mIsRecordingPose = mTogglePoseButton.isChecked();
+    }
+    public void toogleFileWriting(View view) {
+        mIsWriteFile = mToggleFileButton.isChecked();
     }
 
     private TangoConfig setupTangoConfig(Tango tango){
@@ -430,7 +454,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 if(mTangoUx != null){
                     mTangoUx.updatePoseStatus(tangoPoseData.statusCode);
                 }
-                if(mIsRecording.get()) {
+                if(mIsRecording.get() && mIsWriteFile) {
                     mRecorder.addPoseRecord(tangoPoseData);
                 }
             }
@@ -460,9 +484,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
             @Override
             public void onPointCloudAvailable(TangoPointCloudData tangoPointCloudData) {
-                if(mTangoUx != null){
-                    mTangoUx.updatePointCloud(tangoPointCloudData);
-                }
+//                if(mTangoUx != null){
+//                    mTangoUx.updatePointCloud(tangoPointCloudData);
+//                }
             }
         });
     }
@@ -474,33 +498,54 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     @Override
-    public void onSensorChanged(SensorEvent event){
+    public void onSensorChanged(final SensorEvent event){
         if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER){
-            mLabelAx.setText(String.format(Locale.US, "%.6f", event.values[0]));
-            mLabelAy.setText(String.format(Locale.US, "%.6f", event.values[1]));
-            mLabelAz.setText(String.format(Locale.US, "%.6f", event.values[2]));
-            if(mIsRecording.get()){
+            mUIHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mLabelAx.setText(String.format(Locale.US, "%.6f", event.values[0]));
+                    mLabelAy.setText(String.format(Locale.US, "%.6f", event.values[1]));
+                    mLabelAz.setText(String.format(Locale.US, "%.6f", event.values[2]));
+                }
+            });
+            if(mIsRecording.get() && mIsWriteFile){
                 mRecorder.addAcclerometerRecord(event);
             }
         }else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE){
-            mLabelRx.setText(String.format(Locale.US, "%.6f", event.values[0]));
-            mLabelRy.setText(String.format(Locale.US, "%.6f", event.values[1]));
-            mLabelRz.setText(String.format(Locale.US, "%.6f", event.values[2]));
-            if(mIsRecording.get()){
+            mUIHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mLabelRx.setText(String.format(Locale.US, "%.6f", event.values[0]));
+                    mLabelRy.setText(String.format(Locale.US, "%.6f", event.values[1]));
+                    mLabelRz.setText(String.format(Locale.US, "%.6f", event.values[2]));
+                }
+            });
+            if(mIsRecording.get() && mIsWriteFile){
                 mRecorder.addGyroscopeRecord(event);
             }
-        }else if(event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION){
-            mLabelLx.setText(String.format(Locale.US, "%.6f", event.values[0]));
-            mLabelLy.setText(String.format(Locale.US, "%.6f", event.values[1]));
-            mLabelLz.setText(String.format(Locale.US, "%.6f", event.values[2]));
-            if(mIsRecording.get()){
+        }
+        else if(event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION){
+            mUIHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mLabelLx.setText(String.format(Locale.US, "%.6f", event.values[0]));
+                    mLabelLy.setText(String.format(Locale.US, "%.6f", event.values[1]));
+                    mLabelLz.setText(String.format(Locale.US, "%.6f", event.values[2]));
+                }
+            });
+            if(mIsRecording.get() && mIsWriteFile){
                 mRecorder.addLinerAccelerationRecord(event);
             }
         }else if(event.sensor.getType() == Sensor.TYPE_GRAVITY){
-            mLabelGx.setText(String.format(Locale.US, "%.6f", event.values[0]));
-            mLabelGy.setText(String.format(Locale.US, "%.6f", event.values[1]));
-            mLabelGz.setText(String.format(Locale.US, "%.6f", event.values[2]));
-            if(mIsRecording.get()){
+            mUIHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mLabelGx.setText(String.format(Locale.US, "%.6f", event.values[0]));
+                    mLabelGy.setText(String.format(Locale.US, "%.6f", event.values[1]));
+                    mLabelGz.setText(String.format(Locale.US, "%.6f", event.values[2]));
+                }
+            });
+            if(mIsRecording.get() && mIsWriteFile){
                 mRecorder.addGravityRecord(event);
             }
         }

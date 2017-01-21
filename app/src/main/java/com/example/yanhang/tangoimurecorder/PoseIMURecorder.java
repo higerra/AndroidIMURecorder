@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static android.content.ContentValues.TAG;
 
@@ -55,6 +56,8 @@ public class PoseIMURecorder {
             pose_writer_.close();
             gyro_writer_.close();
             acce_writer_.close();
+            grav_writer_.close();
+            linacce_writer_.close();
         }catch (IOException e){
             e.printStackTrace();
         }
