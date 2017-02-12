@@ -27,6 +27,7 @@ public class PoseIMURecorder {
     private FileWriter acce_writer_;
     private FileWriter grav_writer_;
     private FileWriter linacce_writer_;
+    private FileWriter orientation_writer_;
 
     private static final float mulNanoToSec = 1000000000;
 
@@ -46,6 +47,7 @@ public class PoseIMURecorder {
             acce_writer_ = createFile(path + "/acce.txt", header);
             grav_writer_ = createFile(path + "/gravity.txt", header);
             linacce_writer_ = createFile(path + "/linacce.txt", header);
+            orientation_writer_ = createFile(path + "/orientation.txt", header);
         }catch (IOException e){
             e.printStackTrace();
         }
@@ -126,6 +128,20 @@ public class PoseIMURecorder {
         }catch (IOException e){
             e.printStackTrace();
         }
+        return true;
+    }
+
+    public Boolean addOrientationRecord(SensorEvent event){
+        float[] values = event.values;
+        long timestamp = event.timestamp;
+
+        try{
+            orientation_writer_.write(String.format(Locale.US, "%d %.6f %.6f %.6f\n", timestamp, values[0], values[1], values[2]));
+            orientation_writer_.flush();
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+
         return true;
     }
 

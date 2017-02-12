@@ -18,7 +18,7 @@
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
         android:columnCount="4"
-        android:rowCount="4">
+        android:rowCount="5">
 
         <!-- Rotation-->
         <TextView
@@ -118,6 +118,31 @@
             android:layout_height="wrap_content"
             android:layout_gravity="right"
             android:id="@+id/label_gz"
+            android:text="0.000000"/>
+
+        <!-- rotation vector -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="right"
+            android:text="Orientation:"/>
+        <TextView
+            android:layout_width="@dimen/imu_number_width"
+            android:layout_height="wrap_content"
+            android:id="@+id/label_ox"
+            android:layout_gravity="right"
+            android:text="0.000000"/>
+        <TextView
+            android:layout_width="@dimen/imu_number_width"
+            android:layout_height="wrap_content"
+            android:layout_gravity="right"
+            android:id="@+id/label_oy"
+            android:text="0.000000"/>
+        <TextView
+            android:layout_width="@dimen/imu_number_width"
+            android:layout_height="wrap_content"
+            android:layout_gravity="right"
+            android:id="@+id/label_oz"
             android:text="0.000000"/>
 
     </GridLayout>

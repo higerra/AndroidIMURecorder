@@ -112,19 +112,28 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Sensor mGyroscope;
     private Sensor mGravity;
     private Sensor mLinearAcce;
+    private Sensor mOrientation;
 
+    // Gyroscope
     private TextView mLabelRx;
     private TextView mLabelRy;
     private TextView mLabelRz;
+    // Accelerometer
     private TextView mLabelAx;
     private TextView mLabelAy;
     private TextView mLabelAz;
+    // Linear acceleration
     private TextView mLabelLx;
     private TextView mLabelLy;
     private TextView mLabelLz;
+    // Gravity
     private TextView mLabelGx;
     private TextView mLabelGy;
     private TextView mLabelGz;
+    // Orientation
+    private TextView mLabelOx;
+    private TextView mLabelOy;
+    private TextView mLabelOz;
 
 
     private Button mStartStopButton;
@@ -185,6 +194,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         mGravity = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
         mLinearAcce = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
+        mOrientation = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
 
         mLabelRx = (TextView)findViewById(R.id.label_rx);
         mLabelRy = (TextView)findViewById(R.id.label_ry);
@@ -198,6 +208,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mLabelGx = (TextView)findViewById(R.id.label_gx);
         mLabelGy = (TextView)findViewById(R.id.label_gy);
         mLabelGz = (TextView)findViewById(R.id.label_gz);
+        mLabelOx = (TextView)findViewById(R.id.label_ox);
+        mLabelOy = (TextView)findViewById(R.id.label_oy);
+        mLabelOz = (TextView)findViewById(R.id.label_oz);
         mStartStopButton = (Button)findViewById(R.id.button_start_stop);
         mTogglePoseButton = (ToggleButton)findViewById(R.id.toggle_pose);
         mToggleFileButton = (ToggleButton)findViewById(R.id.toggle_file);
@@ -211,6 +224,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mSensorManager.unregisterListener(this, mGyroscope);
         mSensorManager.unregisterListener(this, mGravity);
         mSensorManager.unregisterListener(this, mLinearAcce);
+        mSensorManager.unregisterListener(this, mOrientation);
     }
 
     @Override
@@ -221,6 +235,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mSensorManager.registerListener(this, mGyroscope, SensorManager.SENSOR_DELAY_FASTEST);
         mSensorManager.registerListener(this, mGravity, SensorManager.SENSOR_DELAY_FASTEST);
         mSensorManager.registerListener(this, mLinearAcce, SensorManager.SENSOR_DELAY_FASTEST);
+        mSensorManager.registerListener(this, mOrientation, SensorManager.SENSOR_DELAY_FASTEST);
     }
 
     private void startNewRecording(){
@@ -448,7 +463,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 TangoPoseData.COORDINATE_FRAME_DEVICE
         ));
 
-        mTango.connectListener(framePairs, new OnTangoUpdateListener() {
+        mTango.connectListener(framePairs, new Tango.TangoUpdateCallback() {
             @Override
             public void onPoseAvailable(TangoPoseData tangoPoseData) {
                 if(mTangoUx != null){
@@ -460,33 +475,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
 
             @Override
-            public void onXyzIjAvailable(TangoXyzIjData tangoXyzIjData) {
-            }
-
-            @Override
-            public void onFrameAvailable(int cameraId) {
-//                if(cameraId == TangoCameraIntrinsics.TANGO_CAMERA_COLOR){
-//                    if(mVideoSurfaceView.getRenderMode() != GLSurfaceView.RENDERMODE_WHEN_DIRTY){
-//                        mVideoSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
-//                    }
-//
-//                    mIsFrameAvailableTangoThread.set(true);
-//                    mVideoSurfaceView.requestRender();
-//                }
-            }
-
-            @Override
             public void onTangoEvent(TangoEvent tangoEvent) {
                 if(mTangoUx != null){
                     mTangoUx.updateTangoEvent(tangoEvent);
                 }
-            }
-
-            @Override
-            public void onPointCloudAvailable(TangoPointCloudData tangoPointCloudData) {
-//                if(mTangoUx != null){
-//                    mTangoUx.updatePointCloud(tangoPointCloudData);
-//                }
             }
         });
     }
@@ -547,6 +539,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             });
             if(mIsRecording.get() && mIsWriteFile){
                 mRecorder.addGravityRecord(event);
+            }
+        }else if(event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR){
+            mUIHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mLabelOx.setText(String.format(Locale.US, "%.6f", event.values[0]));
+                    mLabelOy.setText(String.format(Locale.US, "%.6f", event.values[1]));
+                    mLabelOz.setText(String.format(Locale.US, "%.6f", event.values[2]));
+                }
+            });
+            if(mIsRecording.get() && mIsWriteFile){
+                mRecorder.addOrientationRecord(event);
             }
         }
     }
