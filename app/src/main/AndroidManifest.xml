@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.yanhang.tangoimurecorder">
+    package="com.example.yanhang.androidimurecorder">
 
     <application
         android:allowBackup="true"
