@@ -4,18 +4,13 @@
     android:id="@+id/activity_main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.example.yanhang.tangoimurecorder.MainActivity">
-
-    <org.rajawali3d.surface.RajawaliSurfaceView
-        android:id="@+id/gl_surface_view"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent" />
+    tools:context="com.example.yanhang.androidimurecorder.MainActivity">
 
     <GridLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_alignParentBottom="true"
+        android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
         android:columnCount="4"
         android:rowCount="5">
@@ -122,10 +117,11 @@
 
         <!-- rotation vector -->
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="@dimen/imu_number_width"
             android:layout_height="wrap_content"
+            android:id="@+id/label_ow"
             android:layout_gravity="right"
-            android:text="Orientation:"/>
+            android:text="0.000000"/>
         <TextView
             android:layout_width="@dimen/imu_number_width"
             android:layout_height="wrap_content"
@@ -170,19 +166,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
-        android:layout_alignParentBottom="true">
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/record_pose"
-            android:textAlignment="center"/>
-        <ToggleButton
-            android:id="@+id/toggle_pose"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:checked="true"
-            android:onClick="tooglePoseRecording"/>
-
+        android:layout_alignParentTop="true">
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
