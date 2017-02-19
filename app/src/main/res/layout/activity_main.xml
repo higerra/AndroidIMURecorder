@@ -161,13 +161,11 @@
         <TextView
             android:layout_width="@dimen/imu_number_width"
             android:layout_height="wrap_content"
-            android:width="@dimen/imu_number_width"
             android:id="@+id/label_ox"
             android:text="0.000000"/>
         <TextView
             android:layout_width="@dimen/imu_number_width"
             android:layout_height="wrap_content"
-            android:width="@dimen/imu_number_width"
             android:id="@+id/label_oy"
             android:text="0.000000"/>
         <TextView
