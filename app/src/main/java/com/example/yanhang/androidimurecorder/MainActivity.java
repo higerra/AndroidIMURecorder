@@ -324,7 +324,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
             });
             if(mIsRecording.get() && mIsWriteFile){
-                mRecorder.addRecord(event, PoseIMURecorder.ACCELEROMETER);
+                mRecorder.addIMURecord(event, PoseIMURecorder.ACCELEROMETER);
             }
         }else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE){
             mUIHandler.post(new Runnable() {
@@ -336,7 +336,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
             });
             if(mIsRecording.get() && mIsWriteFile){
-                mRecorder.addRecord(event, PoseIMURecorder.GYROSCOPE);
+                mRecorder.addIMURecord(event, PoseIMURecorder.GYROSCOPE);
             }
         }
         else if(event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION){
@@ -349,7 +349,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
             });
             if(mIsRecording.get() && mIsWriteFile){
-                mRecorder.addRecord(event, PoseIMURecorder.LINEAR_ACCELERATION);
+                mRecorder.addIMURecord(event, PoseIMURecorder.LINEAR_ACCELERATION);
             }
         }else if(event.sensor.getType() == Sensor.TYPE_GRAVITY){
             mUIHandler.post(new Runnable() {
@@ -361,7 +361,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
             });
             if(mIsRecording.get() && mIsWriteFile){
-                mRecorder.addRecord(event, PoseIMURecorder.GRAVITY);
+                mRecorder.addIMURecord(event, PoseIMURecorder.GRAVITY);
             }
         }else if(event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD){
             mUIHandler.post(new Runnable() {
@@ -373,7 +373,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
             });
             if(mIsRecording.get() && mIsWriteFile){
-                mRecorder.addRecord(event, PoseIMURecorder.MAGNETOMETER);
+                mRecorder.addIMURecord(event, PoseIMURecorder.MAGNETOMETER);
             }
         }
         else if(event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR){
@@ -387,7 +387,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
             });
             if(mIsRecording.get() && mIsWriteFile){
-                mRecorder.addRecord(event, PoseIMURecorder.ROTATION_VECTOR);
+                mRecorder.addIMURecord(event, PoseIMURecorder.ROTATION_VECTOR);
             }
         }
     }
