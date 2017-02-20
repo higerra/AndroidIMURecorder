@@ -12,6 +12,7 @@ import android.util.Log;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.Calendar;
 import java.util.Locale;
@@ -26,7 +27,7 @@ public class PoseIMURecorder {
 
     private final static String LOG_TAG = PoseIMURecorder.class.getName();
 
-    MainActivity parent_;
+    private MainActivity parent_;
 
     public static final int SENSOR_COUNT = 6;
     public static final int GYROSCOPE = 0;
@@ -36,8 +37,8 @@ public class PoseIMURecorder {
     public static final int GRAVITY = 4;
     public static final int ROTATION_VECTOR = 5;
 
-    private FileWriter[] file_writers_ = new FileWriter[SENSOR_COUNT];
-    private Vector<Vector<String>> data_buffers_ = new Vector<Vector<String> >();
+    private BufferedWriter[] file_writers_ = new BufferedWriter[SENSOR_COUNT];
+    //private Vector<Vector<String>> data_buffers_ = new Vector<Vector<String> >();
     private String[] default_file_names_ = {"gyro.txt", "acce.txt", "magnet.txt", "linacce.txt", "gravity.txt", "orientation.txt"};
 
     public PoseIMURecorder(String path, MainActivity parent){
@@ -47,7 +48,7 @@ public class PoseIMURecorder {
         try {
             for(int i=0; i<SENSOR_COUNT; ++i) {
                 file_writers_[i] = createFile(path + "/" + default_file_names_[i], header);
-                data_buffers_.add(new Vector<String>());
+//                data_buffers_.add(new Vector<String>());
             }
         }catch (IOException e){
             e.printStackTrace();
@@ -64,7 +65,8 @@ public class PoseIMURecorder {
     public void endFiles(){
         try {
             for(int i=0; i<SENSOR_COUNT; ++i){
-                writeBufferToFile(file_writers_[i], data_buffers_.get(i));
+                file_writers_[i].close();
+//                writeBufferToFile(file_writers_[i], data_buffers_.get(i));
             }
         }catch (IOException e){
             e.printStackTrace();
@@ -77,17 +79,24 @@ public class PoseIMURecorder {
         }
         float[] values = event.values;
         long timestamp = event.timestamp;
-        if(type != ROTATION_VECTOR){
-            data_buffers_.get(type).add(String.format(Locale.US,"%d %.6f %.6f %.6f\n", timestamp, values[0], values[1], values[2]));
-        }else{
-            data_buffers_.get(type).add(String.format(Locale.US,"%d %.6f %.6f %.6f %.6f\n", timestamp, values[3], values[0], values[1], values[2]));
+        try {
+            if (type != ROTATION_VECTOR) {
+                //data_buffers_.get(type).add(String.format(Locale.US,"%d %.6f %.6f %.6f\n", timestamp, values[0], values[1], values[2]));
+                file_writers_[type].write(String.format(Locale.US, "%d %.6f %.6f %.6f\n", timestamp, values[0], values[1], values[2]));
+            } else {
+                //data_buffers_.get(type).add(String.format(Locale.US, "%d %.6f %.6f %.6f %.6f\n", timestamp, values[3], values[0], values[1], values[2]));
+                file_writers_[type].write(String.format(Locale.US, "%d %.6f %.6f %.6f %.6f\n", timestamp, values[3], values[0], values[1], values[2]));
+            }
+            return true;
+        }catch(IOException e){
+            e.printStackTrace();
+            return false;
         }
-        return true;
     }
 
-    private FileWriter createFile(String path, String header) throws IOException{
+    private BufferedWriter createFile(String path, String header) throws IOException{
         File file = new File(path);
-        FileWriter writer = new FileWriter(file);
+        BufferedWriter writer = new BufferedWriter(new FileWriter(file));
         Intent scan_intent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
         scan_intent.setData(Uri.fromFile(file));
         parent_.sendBroadcast(scan_intent);
