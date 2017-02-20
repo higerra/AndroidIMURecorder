@@ -30,7 +30,7 @@ public class PoseIMURecorder {
 
     private final static String LOG_TAG = PoseIMURecorder.class.getName();
 
-    MainActivity parent_;
+    private MainActivity parent_;
 
     public static final int SENSOR_COUNT = 7;
     public static final int GYROSCOPE = 0;
@@ -109,7 +109,6 @@ public class PoseIMURecorder {
             }else{
                 //data_buffers_.get(type).add(String.format(Locale.US,"%d %.6f %.6f %.6f %.6f\n", timestamp, values[3], values[0], values[1], values[2]));
                 file_writers_[type].write(String.format(Locale.US, "%d %.6f %.6f %.6f\n", timestamp, values[0], values[1], values[2]));
-
             }
             return true;
         }catch(IOException e){
