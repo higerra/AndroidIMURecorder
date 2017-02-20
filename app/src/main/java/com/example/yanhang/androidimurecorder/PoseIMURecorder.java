@@ -71,6 +71,7 @@ public class PoseIMURecorder {
         try {
             for(int i=0; i<SENSOR_COUNT; ++i){
                 //writeBufferToFile(file_writers_[i], data_buffers_.get(i));
+                file_writers_[i].flush();
                 file_writers_[i].close();
             }
         }catch (IOException e){
