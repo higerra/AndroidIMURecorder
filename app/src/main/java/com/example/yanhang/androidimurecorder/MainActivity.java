@@ -268,7 +268,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddhhmmss", Locale.US);
         // File external_dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
         //File output_dir = new File(external_dir.getAbsolutePath() + "/imu_data/", formatter.format(current_time.getTime()));
-        File output_dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS),
+        File output_dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
                 formatter.format(current_time.getTime()));
         Log.i(LOG_TAG, output_dir.getAbsolutePath());
         if(!output_dir.exists()) {
