@@ -132,7 +132,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         mGravity = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
         mLinearAcce = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
-        mOrientation = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        mOrientation = mSensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR);
         mMagnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
 
         mLabelRx = (TextView)findViewById(R.id.label_rx);
@@ -376,7 +376,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 mRecorder.addIMURecord(event, PoseIMURecorder.MAGNETOMETER);
             }
         }
-        else if(event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR){
+        else if(event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR){
             mUIHandler.post(new Runnable() {
                 @Override
                 public void run() {
