@@ -53,6 +53,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Sensor mLinearAcce;
     private Sensor mOrientation;
     private Sensor mMagnetometer;
+    private Sensor mStepCounter;
+
+    private float mInitialStepCount = -1;
 
     // Gyroscope
     private TextView mLabelRx;
@@ -70,11 +73,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private TextView mLabelGx;
     private TextView mLabelGy;
     private TextView mLabelGz;
-    // Orientation
-    private TextView mLabelOw;
-    private TextView mLabelOx;
-    private TextView mLabelOy;
-    private TextView mLabelOz;
+
     // Magnetometer
     private TextView mLabelMx;
     private TextView mLabelMy;
@@ -134,6 +133,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mLinearAcce = mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
         mOrientation = mSensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR);
         mMagnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        mStepCounter = mSensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
 
         mLabelRx = (TextView)findViewById(R.id.label_rx);
         mLabelRy = (TextView)findViewById(R.id.label_ry);
@@ -147,13 +147,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mLabelGx = (TextView)findViewById(R.id.label_gx);
         mLabelGy = (TextView)findViewById(R.id.label_gy);
         mLabelGz = (TextView)findViewById(R.id.label_gz);
-        mLabelOw = (TextView)findViewById(R.id.label_ow);
-        mLabelOx = (TextView)findViewById(R.id.label_ox);
-        mLabelOy = (TextView)findViewById(R.id.label_oy);
-        mLabelOz = (TextView)findViewById(R.id.label_oz);
-        mLabelMx = (TextView) findViewById(R.id.label_mx);
-        mLabelMy = (TextView) findViewById(R.id.label_my);
-        mLabelMz = (TextView) findViewById(R.id.label_mz);
         mStartStopButton = (Button)findViewById(R.id.button_start_stop);
         mToggleFileButton = (ToggleButton)findViewById(R.id.toggle_file);
 
@@ -170,6 +163,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mSensorManager.unregisterListener(this, mLinearAcce);
         mSensorManager.unregisterListener(this, mOrientation);
         mSensorManager.unregisterListener(this, mMagnetometer);
+        mSensorManager.unregisterListener(this, mStepCounter);
     }
 
     @Override
@@ -182,6 +176,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mSensorManager.registerListener(this, mLinearAcce, SensorManager.SENSOR_DELAY_FASTEST);
         mSensorManager.registerListener(this, mOrientation, SensorManager.SENSOR_DELAY_FASTEST);
         mSensorManager.registerListener(this, mMagnetometer, SensorManager.SENSOR_DELAY_FASTEST);
+        mSensorManager.registerListener(this, mStepCounter, SensorManager.SENSOR_DELAY_FASTEST);
 
         int permissionCheck = ContextCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
         if(permissionCheck != PackageManager.PERMISSION_GRANTED){
@@ -215,14 +210,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     }).show();
             return;
         }
-
-        mToggleFileButton.setEnabled(false);
         //initialize recorder
         if(mIsWriteFile) {
             try {
                 String output_dir = setupOutputFolder();
                 mRecorder = new PoseIMURecorder(output_dir, this);
-                mIsRecording.set(true);
                 // prevent screen lock
                 getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             } catch (FileNotFoundException e) {
@@ -238,6 +230,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 e.printStackTrace();
             }
         }
+
+        mToggleFileButton.setEnabled(false);
+        mInitialStepCount = -1.0f;
+        mIsRecording.set(true);
     }
 
     private void stopRecording(){
@@ -266,8 +262,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private String setupOutputFolder() throws FileNotFoundException{
         Calendar current_time = Calendar.getInstance();
         SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddhhmmss", Locale.US);
-        // File external_dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-        //File output_dir = new File(external_dir.getAbsolutePath() + "/imu_data/", formatter.format(current_time.getTime()));
         File output_dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
                 formatter.format(current_time.getTime()));
         Log.i(LOG_TAG, output_dir.getAbsolutePath());
@@ -364,30 +358,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 mRecorder.addIMURecord(event, PoseIMURecorder.GRAVITY);
             }
         }else if(event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD){
-            mUIHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    mLabelMx.setText(String.format(Locale.US, "%.6f", event.values[0]));
-                    mLabelMy.setText(String.format(Locale.US, "%.6f", event.values[1]));
-                    mLabelMz.setText(String.format(Locale.US, "%.6f", event.values[2]));
-                }
-            });
             if(mIsRecording.get() && mIsWriteFile){
                 mRecorder.addIMURecord(event, PoseIMURecorder.MAGNETOMETER);
             }
         }
         else if(event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR){
-            mUIHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    mLabelOw.setText(String.format(Locale.US, "%.6f", event.values[3]));
-                    mLabelOx.setText(String.format(Locale.US, "%.6f", event.values[0]));
-                    mLabelOy.setText(String.format(Locale.US, "%.6f", event.values[1]));
-                    mLabelOz.setText(String.format(Locale.US, "%.6f", event.values[2]));
-                }
-            });
             if(mIsRecording.get() && mIsWriteFile){
                 mRecorder.addIMURecord(event, PoseIMURecorder.ROTATION_VECTOR);
+            }
+        } else if (event.sensor.getType() == Sensor.TYPE_STEP_COUNTER) {
+            if (mIsRecording.get()) {
+                if (mInitialStepCount < 0) {
+                    mInitialStepCount = event.values[0] - 1;
+                }
+                if (mIsRecording.get() && mIsWriteFile) {
+                    mRecorder.addStepRecord(event.timestamp,
+                            (int) (event.values[0] - mInitialStepCount));
+                }
             }
         }
     }
